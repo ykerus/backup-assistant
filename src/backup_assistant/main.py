@@ -1,8 +1,8 @@
 import logging
 import os
-from pathlib import Path
 import shutil
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, List
 
 from rich.logging import RichHandler
@@ -45,14 +45,12 @@ def get_files_to_backup(
     from_folder_files: Dict[str, datetime],
     to_folder_files: Dict[str, datetime],
 ) -> List[str]:
-
     backup_new_files_list = []
     backup_modified_files_list = []
     skip_unmodified_files_list = []
     skip_ignore_files_list = []
     skip_ignore_folders_files_list = []
     for file_rel_path in from_folder_files:
-
         file_name = Path(file_rel_path).name
         suffix = Path(file_rel_path).suffix
 
@@ -81,7 +79,6 @@ def get_files_to_backup(
             skip_unmodified_files_list.append(file_rel_path)
             logger.debug(f"Skipping (unmodified):    '{file_rel_path}'")
         elif from_folder_files[file_rel_path] < to_folder_files[file_rel_path]:
-
             logger.warning(
                 f"Modified in backup: '{file_rel_path}'"
                 + f"\n  - FROM path: '{from_folder_file_abs_path}'"
@@ -111,7 +108,6 @@ def get_files_to_delete(
     from_folder_files: Dict[str, datetime],
     to_folder_files: Dict[str, datetime],
 ) -> List[str]:
-
     delete_files_list = []
     for file_rel_path in to_folder_files:
         if file_rel_path not in from_folder_files:
@@ -124,7 +120,6 @@ def get_files_to_delete(
 
 
 def backup_files(backup_files_list: List[str], ask_user_consent: bool = True) -> None:
-
     if len(backup_files_list) == 0:
         return
 
@@ -206,7 +201,6 @@ def delete_files(delete_files_list: List[str], ask_user_consent: bool = True) ->
 
 
 def main():
-
     logger.info("Starting up backup assistant 🤖")
 
     from_folder_files = get_files_with_dates(FROM_FOLDER_ABS_PATH)
@@ -224,7 +218,6 @@ def main():
 
 
 if __name__ == "__main__":
-
     with open("logfile.log", "w") as file:
         pass  # The file is now clearedwith open('logfile.log', 'w') as file:
 

@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "backup_assistant"
+
+dependencies = [
+    "rich>=13.9.4",
+    "tqdm>=4.67.1",
+]
+requires-python = "==3.12.*"
+authors = [
+    {name = "Yke"},
+]
+description = "Backup assistant"
+readme = "README.md"
+dynamic = ["version"]
+
+[project.optional-dependencies]
+dev = [
+    "ipykernel==6.29.3",
+    "pytest==8.1.1",
+    "pre-commit==3.6.2",
+]
+
+[tool.ruff]
+line-length = 100
+lint.select = ["I"]
+src = ["src"]
+
+[tool.black]
+line-length = 100

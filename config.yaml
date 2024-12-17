@@ -1,0 +1,15 @@
+# "Smart" syntax not supported, e.g. "some folder/*.mp4" to ignore all mp4's from "some folder".
+# Specific subfolders can be ignored, but cannot be preceded or followed by "/", so
+#   "some folder/some subfolder" works but not "some folder/some subfolder/"
+
+ignore_files:
+  - .DS_Store
+
+ignore_folders:
+  - .venv
+  - .cache
+  - .mypy_cache
+  - Example folder/Example subfolder
+
+ignore_extensions:
+  - .pth

@@ -3,10 +3,11 @@ import os
 import shutil
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Union
 
 from rich.logging import RichHandler
 from tqdm import tqdm
+import yaml
 
 logger = logging.getLogger(__name__)
 
@@ -19,18 +20,25 @@ TO_FOLDER_ABS_PATH = os.path.abspath(TO_FOLDER_PATH)
 TRASH_PATH = "~/.Trash"
 TRASH_ABS_PATH = os.path.expanduser("~/.Trash")
 
-SKIP_FILES = [
-    ".DS_Store",
-]
 
-SKIP_EXTENSIONS = [
-    ".pth",
-]
+def load_config(config_path: Path = None) -> Dict[str, List[str]]:
+    config_path = config_path or Path(__file__).resolve().parents[2] / "config.yaml"
 
-SKIP_FOLDERS = [".venv", ".cache", ".mypy_cache", "folder_1/subfolder_1"]
+    if not os.path.exists(config_path):
+        raise FileNotFoundError(f"Config file not found. Expected at {config_path}")
+
+    with open(config_path) as f:
+        config = yaml.safe_load(f)
+
+    expected_keys = ["ignore_files", "ignore_folders", "ignore_extensions"]
+    for key in expected_keys:
+        if key not in config:
+            raise KeyError(f"Missing key in provided config file: '{key}'")
+
+    return config
 
 
-def get_files_with_dates(folder_path: str) -> Dict[str, datetime]:
+def get_relative_file_paths_with_modified_dates(folder_path: str) -> Dict[str, datetime]:
     files_dict = {}
     for root, _, files in os.walk(folder_path):
         for file in files:
@@ -50,6 +58,7 @@ def get_files_to_backup(
     skip_unmodified_files_list = []
     skip_ignore_files_list = []
     skip_ignore_folders_files_list = []
+    config = load_config()
     for file_rel_path in from_folder_files:
         file_name = Path(file_rel_path).name
         suffix = Path(file_rel_path).suffix
@@ -58,7 +67,7 @@ def get_files_to_backup(
         to_folder_file_abs_path = os.path.join(TO_FOLDER_ABS_PATH, file_rel_path)
 
         skip_folder = False
-        for folder_name in SKIP_FOLDERS:
+        for folder_name in config["ignore_folders"]:
             if f"/{folder_name}/" in from_folder_file_abs_path:
                 skip_ignore_folders_files_list.append(file_rel_path)
                 logger.debug(f"Skipping (ignore folder): '{file_rel_path}'")
@@ -66,7 +75,7 @@ def get_files_to_backup(
                 break
         if skip_folder:
             continue
-        if (file_name in SKIP_FILES) or (suffix in SKIP_EXTENSIONS):
+        if (file_name in config["ignore_files"]) or (suffix in config["ignore_extensions"]):
             skip_ignore_files_list.append(file_rel_path)
             logger.debug(f"Skipping (ignore file):   '{file_rel_path}'")
         elif file_rel_path not in to_folder_files:
@@ -203,9 +212,9 @@ def delete_files(delete_files_list: List[str], ask_user_consent: bool = True) ->
 def main():
     logger.info("Starting up backup assistant 🤖")
 
-    from_folder_files = get_files_with_dates(FROM_FOLDER_ABS_PATH)
+    from_folder_files = get_relative_file_paths_with_modified_dates(FROM_FOLDER_ABS_PATH)
     logger.info(f"Files in FROM folder:  {len(from_folder_files)}")
-    to_folder_files = get_files_with_dates(TO_FOLDER_ABS_PATH)
+    to_folder_files = get_relative_file_paths_with_modified_dates(TO_FOLDER_ABS_PATH)
     logger.info(f"Files in TO folder:    {len(to_folder_files)}")
 
     backup_files_list = get_files_to_backup(from_folder_files, to_folder_files)

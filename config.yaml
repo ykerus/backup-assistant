@@ -2,6 +2,10 @@
 # Specific subfolders can be ignored, but cannot be preceded or followed by "/", so
 #   "some folder/some subfolder" works but not "some folder/some subfolder/"
 
+from_folder_path: data/from
+to_folder_path: data/to
+trash_path: ~/.Trash
+
 ignore_files:
   - .DS_Store
 

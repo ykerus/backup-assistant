@@ -3,39 +3,16 @@ import os
 import shutil
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Union
+from typing import Dict, List
 
-from rich.logging import RichHandler
 from tqdm import tqdm
+
+from backup_assistant.config import load_config
 from backup_assistant.logs import configure_logging
 
 logger = logging.getLogger(__name__)
 
-FROM_FOLDER_PATH = "data/from"
-TO_FOLDER_PATH = "data/to"
-
-FROM_FOLDER_ABS_PATH = os.path.abspath(FROM_FOLDER_PATH)
-TO_FOLDER_ABS_PATH = os.path.abspath(TO_FOLDER_PATH)
-
-TRASH_PATH = "~/.Trash"
-TRASH_ABS_PATH = os.path.expanduser("~/.Trash")
-
-
-def load_config(config_path: Path = None) -> Dict[str, List[str]]:
-    config_path = config_path or Path(__file__).resolve().parents[2] / "config.yaml"
-
-    if not os.path.exists(config_path):
-        raise FileNotFoundError(f"Config file not found. Expected at {config_path}")
-
-    with open(config_path) as f:
-        config = yaml.safe_load(f)
-
-    expected_keys = ["ignore_files", "ignore_folders", "ignore_extensions"]
-    for key in expected_keys:
-        if key not in config:
-            raise KeyError(f"Missing key in provided config file: '{key}'")
-
-    return config
+CONFIG = load_config()
 
 
 def get_relative_file_paths_with_modified_dates(folder_path: str) -> Dict[str, datetime]:
@@ -58,16 +35,16 @@ def get_files_to_backup(
     skip_unmodified_files_list = []
     skip_ignore_files_list = []
     skip_ignore_folders_files_list = []
-    config = load_config()
+
     for file_rel_path in from_folder_files:
         file_name = Path(file_rel_path).name
         suffix = Path(file_rel_path).suffix
 
-        from_folder_file_abs_path = os.path.join(FROM_FOLDER_ABS_PATH, file_rel_path)
-        to_folder_file_abs_path = os.path.join(TO_FOLDER_ABS_PATH, file_rel_path)
+        from_folder_file_abs_path = os.path.join(CONFIG["from_folder_path"], file_rel_path)
+        to_folder_file_abs_path = os.path.join(CONFIG["to_folder_path"], file_rel_path)
 
         skip_folder = False
-        for folder_name in config["ignore_folders"]:
+        for folder_name in CONFIG["ignore_folders"]:
             if f"/{folder_name}/" in from_folder_file_abs_path:
                 skip_ignore_folders_files_list.append(file_rel_path)
                 logger.debug(f"Skipping (ignore folder): '{file_rel_path}'")
@@ -75,7 +52,7 @@ def get_files_to_backup(
                 break
         if skip_folder:
             continue
-        if (file_name in config["ignore_files"]) or (suffix in config["ignore_extensions"]):
+        if (file_name in CONFIG["ignore_files"]) or (suffix in CONFIG["ignore_extensions"]):
             skip_ignore_files_list.append(file_rel_path)
             logger.debug(f"Skipping (ignore file):   '{file_rel_path}'")
         elif file_rel_path not in to_folder_files:
@@ -120,7 +97,7 @@ def get_files_to_delete(
     delete_files_list = []
     for file_rel_path in to_folder_files:
         if file_rel_path not in from_folder_files:
-            to_folder_file_abs_path = os.path.join(TO_FOLDER_ABS_PATH, file_rel_path)
+            to_folder_file_abs_path = os.path.join(CONFIG["to_folder_path"], file_rel_path)
             delete_files_list.append(file_rel_path)
             logger.debug(f"To delete:  '{to_folder_file_abs_path}'")
 
@@ -145,8 +122,8 @@ def backup_files(backup_files_list: List[str], ask_user_consent: bool = True) ->
 
     for file_rel_path in tqdm(backup_files_list):
         try:
-            from_folder_file_abs_path = os.path.join(FROM_FOLDER_ABS_PATH, file_rel_path)
-            to_folder_file_abs_path = os.path.join(TO_FOLDER_ABS_PATH, file_rel_path)
+            from_folder_file_abs_path = os.path.join(CONFIG["from_folder_path"], file_rel_path)
+            to_folder_file_abs_path = os.path.join(CONFIG["to_folder_path"], file_rel_path)
 
             os.makedirs(os.path.dirname(to_folder_file_abs_path), exist_ok=True)
             shutil.copy2(from_folder_file_abs_path, to_folder_file_abs_path)
@@ -171,7 +148,7 @@ def delete_files(delete_files_list: List[str], ask_user_consent: bool = True) ->
         return
 
     delete_files_abs_path_list = [
-        f"'{os.path.join(TO_FOLDER_ABS_PATH, file_rel_path)}'"
+        f"'{os.path.join(CONFIG["to_folder_path"], file_rel_path)}'"
         for file_rel_path in delete_files_list
     ]
     if ask_user_consent:
@@ -185,13 +162,13 @@ def delete_files(delete_files_list: List[str], ask_user_consent: bool = True) ->
             return
     logger.info("Deleting files")
 
-    if not os.path.exists(TRASH_ABS_PATH):
-        raise Exception(f"Could not find Trash folder: '{TRASH_ABS_PATH}'")
+    if not os.path.exists(CONFIG["trash_path"]):
+        raise Exception(f"Could not find Trash folder: '{CONFIG["trash_path"]}'")
 
     for file_rel_path in tqdm(delete_files_list):
         try:
-            to_folder_file_abs_path = os.path.join(TO_FOLDER_ABS_PATH, file_rel_path)
-            trash_file_path = os.path.join(TRASH_ABS_PATH, file_rel_path)
+            to_folder_file_abs_path = os.path.join(CONFIG["to_folder_path"], file_rel_path)
+            trash_file_path = os.path.join(CONFIG["trash_path"], file_rel_path)
 
             os.makedirs(os.path.dirname(trash_file_path), exist_ok=True)
 
@@ -212,9 +189,9 @@ def delete_files(delete_files_list: List[str], ask_user_consent: bool = True) ->
 def main():
     logger.info("Starting up backup assistant 🤖")
 
-    from_folder_files = get_relative_file_paths_with_modified_dates(FROM_FOLDER_ABS_PATH)
+    from_folder_files = get_relative_file_paths_with_modified_dates(CONFIG["from_folder_path"])
     logger.info(f"Files in FROM folder:  {len(from_folder_files)}")
-    to_folder_files = get_relative_file_paths_with_modified_dates(TO_FOLDER_ABS_PATH)
+    to_folder_files = get_relative_file_paths_with_modified_dates(CONFIG["to_folder_path"])
     logger.info(f"Files in TO folder:    {len(to_folder_files)}")
 
     backup_files_list = get_files_to_backup(from_folder_files, to_folder_files)

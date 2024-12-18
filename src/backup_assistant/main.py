@@ -7,7 +7,7 @@ from typing import Dict, List, Union
 
 from rich.logging import RichHandler
 from tqdm import tqdm
-import yaml
+from backup_assistant.logs import configure_logging
 
 logger = logging.getLogger(__name__)
 
@@ -227,22 +227,5 @@ def main():
 
 
 if __name__ == "__main__":
-    with open("logfile.log", "w") as file:
-        pass  # The file is now clearedwith open('logfile.log', 'w') as file:
-
-    file_handler = logging.FileHandler("logfile.log")
-    file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(
-        logging.Formatter("[%(asctime)s] %(levelname)-7s  %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
-    )
-
-    stdout_handler = RichHandler()
-    stdout_handler.setLevel(logging.INFO)
-
-    logging.basicConfig(
-        level=logging.DEBUG,
-        format="%(message)s",
-        datefmt="[%X]",
-        handlers=[stdout_handler, file_handler],
-    )
+    configure_logging()
     main()

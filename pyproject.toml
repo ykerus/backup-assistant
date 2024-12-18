@@ -25,6 +25,9 @@ dev = [
     "pre-commit==3.6.2",
 ]
 
+[project.scripts]
+backup = "backup_assistant.cli:run_backup_assistant"
+
 [tool.ruff]
 line-length = 100
 lint.select = ["I"]

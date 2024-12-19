@@ -1,0 +1,13 @@
+from_folder_path: tests/data/from
+to_folder_path: tests/data/to
+trash_path: ~/.Trash
+
+ignore_files:
+  - .DS_Store
+
+ignore_folders:
+  - folder_3
+  - folder_2/subfolder_1_1
+
+ignore_extensions:
+  - .mp4

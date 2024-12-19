@@ -4,8 +4,18 @@ from pathlib import Path
 from typing import Dict, List, Optional, Union
 
 import yaml  # type: ignore
+from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
+
+
+class Config(BaseModel):
+    from_folder_path: Path
+    to_folder_path: Path
+    trash_path: Path
+    ignore_files: List[str]
+    ignore_folders: List[str]
+    ignore_extensions: List[str]
 
 
 def load_config(config_path: Optional[Path] = None) -> Dict:
@@ -15,27 +25,18 @@ def load_config(config_path: Optional[Path] = None) -> Dict:
         raise FileNotFoundError(f"Config file not found. Expected at {config_path}")
 
     with open(config_path) as f:
-        config = yaml.safe_load(f)
+        config_dict = yaml.safe_load(f)
 
-    expected_keys = [
-        "from_folder_path",
-        "to_folder_path",
-        "trash_path",
-        "ignore_files",
-        "ignore_folders",
-        "ignore_extensions",
-    ]
-    for key in expected_keys:
-        if key not in config:
-            raise KeyError(f"Missing key in provided config file: '{key}'")
+    for key in config_dict:
         if key.endswith("_path"):
-            if config[key].startswith("~"):
-                config[key] = os.path.expanduser(config[key])
-            config[key] = Path(os.path.abspath(config[key]))
+            if config_dict[key].startswith("~"):
+                config_dict[key] = os.path.expanduser(config_dict[key])
+            config_dict[key] = Path(os.path.abspath(config_dict[key]))
 
-    if not os.path.exists(config["trash_path"]):
+    if not os.path.exists(config_dict["trash_path"]):
         raise Exception(f"Could not find Trash folder: '{config["trash_path"]}'")
 
+    config = Config(**config_dict)
     logger.info(f"Config: {config}")
 
     return config

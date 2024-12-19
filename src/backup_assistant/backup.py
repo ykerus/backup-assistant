@@ -9,12 +9,10 @@ from typing import Dict, List, Optional
 
 from tqdm import tqdm
 
-from backup_assistant.config import load_config
+from backup_assistant.config import Config, load_config
 from backup_assistant.logs import configure_logging
 
 logger = logging.getLogger(__name__)
-
-CONFIG = load_config()
 
 
 def get_file_paths_with_modified_dates(folder_path: Path) -> Dict[Path, Dict]:
@@ -46,16 +44,19 @@ class FileClass(Enum):
 
 
 def classify_file(
-    rel_path: Path, from_folder_files: Dict[Path, Dict], to_folder_files: Dict[Path, Dict]
+    rel_path: Path,
+    from_folder_files: Dict[Path, Dict],
+    to_folder_files: Dict[Path, Dict],
+    config: Config,
 ) -> FileClass:
     assert rel_path in from_folder_files, f"{rel_path=} should be in `from_folder_files`"
 
-    for folder_name in CONFIG["ignore_folders"]:
+    for folder_name in config.ignore_folders:
         if f"/{folder_name}/" in str(from_folder_files[rel_path]["abs_path"]):
             return FileClass.IGNORE_FOLDER
-    if rel_path.name in CONFIG["ignore_files"]:
+    if rel_path.name in config.ignore_files:
         return FileClass.IGNORE_FILE
-    elif rel_path.suffix in CONFIG["ignore_extensions"]:
+    elif rel_path.suffix in config.ignore_extensions:
         return FileClass.IGNORE_EXTENSION
     elif rel_path not in to_folder_files:
         return FileClass.NEW_FILE
@@ -69,7 +70,7 @@ def classify_file(
         return FileClass.UNKNOWN
 
 
-def log_file_class(rel_path: Path, file_class: FileClass) -> None:
+def log_file_class(rel_path: Path, file_class: FileClass, config: Config) -> None:
     match file_class:
         case (
             FileClass.IGNORE_FOLDER
@@ -83,8 +84,8 @@ def log_file_class(rel_path: Path, file_class: FileClass) -> None:
         case FileClass.MODIFIED_IN_BACKUP:
             logger.warning(
                 f"Modified in backup: '{rel_path}'"
-                + f"\n  - FROM path:         '{CONFIG["from_folder_path"] / rel_path}'"
-                + f"\n  - TO (backup) path:  '{CONFIG["to_folder_path"] / rel_path}'"
+                + f"\n  - FROM path:         '{config.from_folder_path / rel_path}'"
+                + f"\n  - TO (backup) path:  '{config.to_folder_path / rel_path}'"
             )
         case FileClass.UNKNOWN:
             logger.warning("UNKNOWN file class. Something is wrong with `classify_file(...)`")
@@ -93,13 +94,13 @@ def log_file_class(rel_path: Path, file_class: FileClass) -> None:
 
 
 def get_files_to_backup(
-    from_folder_files: Dict[Path, Dict], to_folder_files: Dict[Path, Dict]
+    from_folder_files: Dict[Path, Dict], to_folder_files: Dict[Path, Dict], config: Config
 ) -> List[Path]:
     backup_files_list = []
     counter = defaultdict(int)  # type: ignore
     for rel_path in from_folder_files:
-        file_class = classify_file(rel_path, from_folder_files, to_folder_files)
-        log_file_class(rel_path, file_class)
+        file_class = classify_file(rel_path, from_folder_files, to_folder_files, config)
+        log_file_class(rel_path, file_class, config)
         counter[file_class] += 1
         if file_class in [FileClass.MODIFIED, FileClass.NEW_FILE]:
             backup_files_list.append(rel_path)
@@ -149,7 +150,9 @@ def get_user_consent(question: str) -> bool:
     return user_input == "y"
 
 
-def backup_files(backup_files_list: List[Path], ask_user_consent: bool = True) -> None:
+def backup_files(
+    backup_files_list: List[Path], config: Config, ask_user_consent: bool = True
+) -> None:
     if len(backup_files_list) == 0:
         return
 
@@ -162,8 +165,8 @@ def backup_files(backup_files_list: List[Path], ask_user_consent: bool = True) -
 
     for rel_path in tqdm(backup_files_list):
         try:
-            from_folder_file_path = CONFIG["from_folder_path"] / rel_path
-            to_folder_file_path = CONFIG["to_folder_path"] / rel_path
+            from_folder_file_path = config.from_folder_path / rel_path
+            to_folder_file_path = config.to_folder_path / rel_path
 
             os.makedirs(os.path.dirname(to_folder_file_path), exist_ok=True)
             shutil.copy2(from_folder_file_path, to_folder_file_path)
@@ -201,11 +204,13 @@ def get_string_list_of_paths(path_list: List[Path], prepend: Optional[Path] = No
     return string_list_of_paths
 
 
-def delete_files(delete_files_list: List[Path], ask_user_consent: bool = True) -> None:
+def delete_files(
+    delete_files_list: List[Path], config: Config, ask_user_consent: bool = True
+) -> None:
     if len(delete_files_list) == 0:
         return
 
-    path_list_str = get_string_list_of_paths(delete_files_list, prepend=CONFIG["to_folder_path"])
+    path_list_str = get_string_list_of_paths(delete_files_list, prepend=config.to_folder_path)
     logger.info(f"Files in TO (backup) folder, not present in FROM folder: {path_list_str}\n")
 
     if ask_user_consent:
@@ -218,8 +223,8 @@ def delete_files(delete_files_list: List[Path], ask_user_consent: bool = True) -
     backup_trash_folder = datetime.now().strftime("backup_trash_%Y-%m-%d_%H;%M;%S")
     for rel_path in tqdm(delete_files_list):
         try:
-            to_folder_file_path = CONFIG["to_folder_path"] / rel_path
-            trash_file_path = CONFIG["trash_path"] / backup_trash_folder / rel_path
+            to_folder_file_path = config.to_folder_path / rel_path
+            trash_file_path = config.trash_path / backup_trash_folder / rel_path
 
             os.makedirs(os.path.dirname(trash_file_path), exist_ok=True)
 
@@ -235,20 +240,22 @@ def delete_files(delete_files_list: List[Path], ask_user_consent: bool = True) -
             raise e
 
 
-def run_backup():
+def run_backup(config_path: Path = "config.yaml"):
     logger.info("Starting up backup assistant 🤖")
 
-    from_folder_files = get_file_paths_with_modified_dates(CONFIG["from_folder_path"])
+    config = load_config(config_path)
+
+    from_folder_files = get_file_paths_with_modified_dates(config.from_folder_path)
     logger.info(f"Files in FROM folder:         {len(from_folder_files)}")
 
-    to_folder_files = get_file_paths_with_modified_dates(CONFIG["to_folder_path"])
+    to_folder_files = get_file_paths_with_modified_dates(config.to_folder_path)
     logger.info(f"Files in TO (backup) folder:  {len(to_folder_files)}")
 
-    backup_files_list = get_files_to_backup(from_folder_files, to_folder_files)
+    backup_files_list = get_files_to_backup(from_folder_files, to_folder_files, config)
     delete_files_list = get_files_to_delete(from_folder_files, to_folder_files)
 
-    backup_files(backup_files_list)
-    delete_files(delete_files_list)
+    backup_files(backup_files_list, config)
+    delete_files(delete_files_list, config)
 
     logger.info("Done 🎉")
 

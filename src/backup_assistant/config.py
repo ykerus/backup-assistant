@@ -1,14 +1,14 @@
 import logging
 import os
 from pathlib import Path
-from typing import Dict, List, Union
+from typing import Dict, List, Optional, Union
 
-import yaml
+import yaml  # type: ignore
 
 logger = logging.getLogger(__name__)
 
 
-def load_config(config_path: Path = None) -> Dict[str, Union[str, Path, List[str]]]:
+def load_config(config_path: Optional[Path] = None) -> Dict:
     config_path = config_path or Path(__file__).resolve().parents[2] / "config.yaml"
 
     if not os.path.exists(config_path):

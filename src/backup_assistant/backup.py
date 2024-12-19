@@ -1,11 +1,11 @@
-from collections import defaultdict
-from enum import Enum
 import logging
 import os
 import shutil
+from collections import defaultdict
 from datetime import datetime
+from enum import Enum
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from tqdm import tqdm
 
@@ -95,9 +95,8 @@ def log_file_class(rel_path: Path, file_class: FileClass) -> None:
 def get_files_to_backup(
     from_folder_files: Dict[Path, Dict], to_folder_files: Dict[Path, Dict]
 ) -> List[Path]:
-
     backup_files_list = []
-    counter = defaultdict(int)
+    counter = defaultdict(int)  # type: ignore
     for rel_path in from_folder_files:
         file_class = classify_file(rel_path, from_folder_files, to_folder_files)
         log_file_class(rel_path, file_class)
@@ -184,7 +183,7 @@ def backup_files(backup_files_list: List[Path], ask_user_consent: bool = True) -
             raise e
 
 
-def get_string_list_of_paths(path_list: List[Path], prepend: Path = None) -> str:
+def get_string_list_of_paths(path_list: List[Path], prepend: Optional[Path] = None) -> str:
     """Get string representation of a list of Paths as:
     ...
       - 'path/to/file1.ext'

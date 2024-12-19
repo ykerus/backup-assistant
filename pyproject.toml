@@ -26,7 +26,7 @@ dev = [
 ]
 
 [project.scripts]
-backup = "backup_assistant.cli:run_backup_assistant"
+backup = "backup_assistant.cli:run_backup_from_cli"
 
 [tool.ruff]
 line-length = 100

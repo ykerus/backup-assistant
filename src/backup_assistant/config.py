@@ -33,6 +33,9 @@ def load_config(config_path: Path = None) -> Dict[str, Union[str, Path, List[str
                 config[key] = os.path.expanduser(config[key])
             config[key] = Path(os.path.abspath(config[key]))
 
+    if not os.path.exists(config["trash_path"]):
+        raise Exception(f"Could not find Trash folder: '{config["trash_path"]}'")
+
     logger.info(f"Config: {config}")
 
     return config

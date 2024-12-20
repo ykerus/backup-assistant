@@ -207,6 +207,7 @@ def get_string_list_of_paths(path_list: List[Path], prepend: Optional[Path] = No
 def delete_files(
     delete_files_list: List[Path], config: Config, ask_user_consent: bool = True
 ) -> None:
+    # TODO: delete empty folders after deleting files
     if len(delete_files_list) == 0:
         return
 

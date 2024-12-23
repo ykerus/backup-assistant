@@ -307,7 +307,7 @@ def delete_empty_folders(config: Config) -> None:
 
 
 def run_backup(config_path: Path = Path("config.yaml")):
-    logger.info("Starting up backup assistant 🤖")
+    logger.info("Starting up backup assistant 🗂️")
 
     config = load_config(config_path)
 

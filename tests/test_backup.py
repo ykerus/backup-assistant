@@ -1,5 +1,8 @@
 from pathlib import Path
 from typing import Dict
+
+import pytest
+
 from backup_assistant.backup import (
     get_empty_folders,
     get_file_paths_with_modified_dates,
@@ -7,8 +10,6 @@ from backup_assistant.backup import (
     get_files_to_delete,
 )
 from backup_assistant.config import Config, load_config
-
-import pytest
 
 
 @pytest.fixture

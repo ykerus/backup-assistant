@@ -39,21 +39,20 @@ def get_empty_folders(
     if ignore_gitkeep:
         files_to_ignore.append(".gitkeep")
 
-    empty_folders = []
+    empty_folders_str = []
     for root, dirs, files in os.walk(folder_path, topdown=False):
-
         for file in files_to_ignore:
             if file in files:
                 files.remove(file)
 
         for dir in dirs.copy():
-            if os.path.join(root, dir) in empty_folders:
+            if os.path.join(root, dir) in empty_folders_str:
                 dirs.remove(dir)
 
         if len(files) == 0 and len(dirs) == 0:
-            empty_folders.append(root)
+            empty_folders_str.append(root)
 
-    empty_folders = [Path(folder) for folder in empty_folders]
+    empty_folders = [Path(folder) for folder in empty_folders_str]
 
     if return_abspath:
         empty_folders = [folder.resolve() for folder in empty_folders]
@@ -271,11 +270,10 @@ def delete_files(
 
 
 def delete_empty_folders(config: Config) -> None:
-
     logger.info("Deleting empty folders from TO (backup) folder")
 
 
-def run_backup(config_path: Path = "config.yaml"):
+def run_backup(config_path: Path = Path("config.yaml")):
     logger.info("Starting up backup assistant 🤖")
 
     config = load_config(config_path)

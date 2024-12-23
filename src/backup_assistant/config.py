@@ -18,7 +18,7 @@ class Config(BaseModel):
     ignore_extensions: List[str]
 
 
-def load_config(config_path: Optional[Path] = None) -> Dict:
+def load_config(config_path: Optional[Path] = None) -> Config:
     config_path = config_path or Path(__file__).resolve().parents[2] / "config.yaml"
 
     if not os.path.exists(config_path):
@@ -34,7 +34,7 @@ def load_config(config_path: Optional[Path] = None) -> Dict:
             config_dict[key] = Path(os.path.abspath(config_dict[key]))
 
     if not os.path.exists(config_dict["trash_path"]):
-        raise Exception(f"Could not find Trash folder: '{config["trash_path"]}'")
+        raise Exception(f"Could not find Trash folder: '{config_dict["trash_path"]}'")
 
     config = Config(**config_dict)
     logger.info(f"Config: {config}")

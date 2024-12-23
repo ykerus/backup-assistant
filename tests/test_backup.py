@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Dict
 from backup_assistant.backup import (
+    get_empty_folders,
     get_file_paths_with_modified_dates,
     get_files_to_backup,
     get_files_to_delete,
@@ -71,3 +72,25 @@ def test_get_files_to_delete(
 
     msg = f"\n\n{in_deleted_not_in_expected=}\n\n{in_expected_not_in_deleted=}\n"
     assert len(in_deleted_not_in_expected) == 0 and len(in_expected_not_in_deleted) == 0, msg
+
+
+def test_get_empty_folders():
+    empty_folders = get_empty_folders(
+        Path("tests/data/empty_folders"), ignore_gitkeep=True, return_abspath=False
+    )
+
+    expected_folders = [
+        Path("tests/data/empty_folders/subfolder_1/subsubfolder_1"),
+        Path("tests/data/empty_folders/subfolder_2/subsubfolder_3"),
+        Path("tests/data/empty_folders/subfolder_3/subsubfolder_4/subsubsubfolder_1"),
+        Path("tests/data/empty_folders/subfolder_3/subsubfolder_4"),
+        Path("tests/data/empty_folders/subfolder_3/subsubfolder_5"),
+        Path("tests/data/empty_folders/subfolder_3"),
+        Path("tests/data/empty_folders/subfolder_4"),
+    ]
+
+    in_expected_not_in_empty = set(expected_folders) - set(empty_folders)
+    in_empty_not_in_expected = set(empty_folders) - set(expected_folders)
+
+    msg = f"\n\n{in_empty_not_in_expected=}\n\n{in_expected_not_in_empty=}\n"
+    assert len(in_empty_not_in_expected) == 0 and len(in_expected_not_in_empty) == 0, msg

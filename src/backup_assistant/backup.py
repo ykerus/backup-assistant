@@ -32,6 +32,35 @@ def get_file_paths_with_modified_dates(folder_path: Path) -> Dict[Path, Dict]:
     return files_dict
 
 
+def get_empty_folders(
+    folder_path: Path, ignore_gitkeep: bool = False, return_abspath: bool = True
+) -> List[Path]:
+    files_to_ignore = [".DS_Store"]
+    if ignore_gitkeep:
+        files_to_ignore.append(".gitkeep")
+
+    empty_folders = []
+    for root, dirs, files in os.walk(folder_path, topdown=False):
+
+        for file in files_to_ignore:
+            if file in files:
+                files.remove(file)
+
+        for dir in dirs.copy():
+            if os.path.join(root, dir) in empty_folders:
+                dirs.remove(dir)
+
+        if len(files) == 0 and len(dirs) == 0:
+            empty_folders.append(root)
+
+    empty_folders = [Path(folder) for folder in empty_folders]
+
+    if return_abspath:
+        empty_folders = [folder.resolve() for folder in empty_folders]
+
+    return empty_folders
+
+
 class FileClass(Enum):
     IGNORE_FOLDER = "ignore_folder"
     IGNORE_FILE = "ignore_file"
@@ -241,6 +270,11 @@ def delete_files(
             raise e
 
 
+def delete_empty_folders(config: Config) -> None:
+
+    logger.info("Deleting empty folders from TO (backup) folder")
+
+
 def run_backup(config_path: Path = "config.yaml"):
     logger.info("Starting up backup assistant 🤖")
 
@@ -257,6 +291,7 @@ def run_backup(config_path: Path = "config.yaml"):
 
     backup_files(backup_files_list, config)
     delete_files(delete_files_list, config)
+    delete_empty_folders(config)
 
     logger.info("Done 🎉")
 

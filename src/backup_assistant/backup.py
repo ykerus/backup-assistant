@@ -252,12 +252,14 @@ def get_string_list_of_paths(path_list: List[Path], prepend: Optional[Path] = No
 def delete_files(
     delete_files_list: List[Path], config: Config, ask_user_consent: bool = True
 ) -> None:
-    # TODO: delete empty folders after deleting files
     if len(delete_files_list) == 0:
         return
 
     path_list_str = get_string_list_of_paths(delete_files_list, prepend=config.to_folder_path)
-    logger.info(f"Files in TO (backup) folder, not present in FROM folder: {path_list_str}\n")
+    logger.info(
+        f"Files in TO (backup) folder, not present in FROM folder: {len(delete_files_list)}"
+        + f"{path_list_str}"
+    )
 
     if ask_user_consent:
         if not get_user_consent("Delete files?"):
@@ -287,16 +289,21 @@ def delete_files(
 
 
 def delete_empty_folders(config: Config) -> None:
-    logger.info("Deleting empty folders from TO (backup) folder")
-
     empty_folders = get_empty_folders(config.to_folder_path)
-    for folder in tqdm(empty_folders):
-        try:
-            remove_folder(folder)
-            logger.debug(f"Deleted empty folder: '{folder}'")
-        except (Exception, KeyboardInterrupt) as e:
-            logger.error(f"Error deleting folder: '{folder}'\n  {type(e).__name__}: {e}")
-            raise e
+    if len(empty_folders) == 0:
+        return
+
+    logging.info(f"Empty folders: {len(empty_folders)}{get_string_list_of_paths(empty_folders)}")
+
+    if get_user_consent("Delete empty folders?"):
+        logger.info("Deleting empty folders from TO (backup) folder")
+        for folder in tqdm(empty_folders):
+            try:
+                remove_folder(folder)
+                logger.debug(f"Deleted empty folder: '{folder}'")
+            except (Exception, KeyboardInterrupt) as e:
+                logger.error(f"Error deleting folder: '{folder}'\n  {type(e).__name__}: {e}")
+                raise e
 
 
 def run_backup(config_path: Path = Path("config.yaml")):

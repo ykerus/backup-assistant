@@ -60,6 +60,23 @@ def get_empty_folders(
     return empty_folders
 
 
+def remove_folder(
+    folder_path: Path, allow_subfolders: bool = False, allow_files: bool = False
+) -> None:
+    for item in folder_path.iterdir():
+        if item.is_dir():
+            if allow_subfolders:
+                remove_folder(item, allow_subfolders)
+            else:
+                raise Exception(f"Folder '{folder_path}' is not empty: '{item.name}'")
+        else:
+            if allow_files or item.name in [".DS_Store", ".gitkeep"]:
+                item.unlink()
+            else:
+                raise Exception(f"Folder '{folder_path}' is not empty: '{item.name}'")
+    folder_path.rmdir()
+
+
 class FileClass(Enum):
     IGNORE_FOLDER = "ignore_folder"
     IGNORE_FILE = "ignore_file"
@@ -271,6 +288,15 @@ def delete_files(
 
 def delete_empty_folders(config: Config) -> None:
     logger.info("Deleting empty folders from TO (backup) folder")
+
+    empty_folders = get_empty_folders(config.to_folder_path)
+    for folder in tqdm(empty_folders):
+        try:
+            remove_folder(folder)
+            logger.debug(f"Deleted empty folder: '{folder}'")
+        except (Exception, KeyboardInterrupt) as e:
+            logger.error(f"Error deleting folder: '{folder}'\n  {type(e).__name__}: {e}")
+            raise e
 
 
 def run_backup(config_path: Path = Path("config.yaml")):

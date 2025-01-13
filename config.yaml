@@ -1,6 +1,5 @@
 # "Smart" syntax not supported, e.g. "some folder/*.mp4" to ignore all mp4's from "some folder".
-# Specific subfolders can be ignored, but cannot be preceded or followed by "/", so
-#   "some folder/some subfolder" works but not "some folder/some subfolder/"
+# Don't use "/" at the end of a folder path.
 
 from_folder_path: data/from
 to_folder_path: data/to

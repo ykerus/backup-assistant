@@ -9,6 +9,7 @@ ignore_files:
   - .DS_Store
 
 ignore_folders:
+  - venv
   - .venv
   - .cache
   - .mypy_cache
